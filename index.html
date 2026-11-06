@@ -1,0 +1,670 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f1417">
+<title>EMDR2 Controle</title>
+<style>
+  :root {
+    --bg: #0f1417;
+    --surface: #172026;
+    --surface-2: #1f2a31;
+    --line: #2b3840;
+    --text: #e6edf0;
+    --muted: #8fa0a8;
+    --accent: #4fb3c8;
+    --accent-ink: #062027;
+    --ok: #6cc59a;
+    --warn: #e6b450;
+    --danger: #e0736b;
+    --radius: 14px;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #f3f6f7; --surface: #ffffff; --surface-2: #eef2f4; --line: #d5dee2;
+      --text: #14212a; --muted: #5b6d76; --accent: #1f7f94; --accent-ink: #ffffff;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font: 16px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+  main { max-width: 560px; margin: 0 auto; padding: 12px 16px 48px; }
+  h2 { font-size: 13px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+       color: var(--muted); margin: 24px 0 10px; }
+  button { font: inherit; color: inherit; border: 0; cursor: pointer; }
+  button:disabled { opacity: .4; cursor: default; }
+
+  /* topo */
+  header { display: flex; align-items: center; gap: 10px; padding: 6px 0 4px; }
+  header h1 { font-size: 20px; margin: 0; flex: 1; }
+  .pill { font-size: 13px; padding: 4px 10px; border-radius: 99px; background: var(--surface-2);
+          color: var(--muted); display: inline-flex; align-items: center; gap: 6px; }
+  .pill::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+  .pill.on { color: var(--ok); } .pill.on::before { background: var(--ok); }
+  .pill.sim { color: var(--warn); } .pill.sim::before { background: var(--warn); }
+  .conn { display: flex; gap: 8px; margin-top: 10px; }
+  .conn button { flex: 1; padding: 12px; border-radius: var(--radius); background: var(--surface-2); }
+  .conn button.primary { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+  .note { font-size: 14px; color: var(--muted); margin: 8px 0 0; }
+  .note.err { color: var(--danger); }
+
+  /* painel */
+  .panel { background: var(--surface); border-radius: var(--radius); padding: 16px; margin-top: 14px; }
+  .strip { display: grid; grid-template-columns: repeat(30, 1fr); gap: 2px; height: 14px;
+           padding: 6px; background: #05080a; border-radius: 8px; }
+  .strip i { border-radius: 2px; background: #11171b; }
+  .readout { display: flex; align-items: baseline; justify-content: space-between; margin-top: 14px; }
+  .count { font-size: 44px; font-weight: 650; font-variant-numeric: tabular-nums; line-height: 1; }
+  .count small { font-size: 22px; color: var(--muted); font-weight: 500; }
+  .state { text-align: right; color: var(--muted); font-size: 14px; }
+  .state b { display: block; color: var(--text); font-size: 17px; }
+  .bar { height: 4px; background: var(--surface-2); border-radius: 2px; margin-top: 12px; overflow: hidden; }
+  .bar span { display: block; height: 100%; width: 0; background: var(--accent); transition: width .3s; }
+
+  .transport { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 8px; margin-top: 14px; }
+  .transport button { padding: 16px 8px; border-radius: var(--radius); background: var(--surface-2); font-weight: 600; }
+  .transport .go { background: var(--accent); color: var(--accent-ink); font-size: 18px; }
+  .transport .stop { color: var(--danger); }
+
+  /* presets */
+  .presets { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .preset { text-align: left; padding: 12px 14px; border-radius: var(--radius); background: var(--surface);
+            border: 1.5px solid transparent; }
+  .preset b { display: block; font-size: 16px; }
+  .preset span { font-size: 13px; color: var(--muted); }
+  .preset.sel { border-color: var(--accent); }
+
+  /* ajustes */
+  .field { background: var(--surface); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 8px; }
+  .field label, .field .lbl { display: flex; justify-content: space-between; font-size: 15px; margin-bottom: 10px; }
+  .field output, .field .val { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { padding: 8px 12px; border-radius: 99px; background: var(--surface-2); font-size: 14px; }
+  .chip.sel { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+  input[type=range] { width: 100%; accent-color: var(--accent); height: 28px; }
+  .stepper { display: flex; align-items: center; gap: 8px; }
+  .stepper button { width: 44px; height: 40px; border-radius: 10px; background: var(--surface-2); font-size: 20px; }
+  .stepper .num { min-width: 64px; text-align: center; font-size: 20px; font-variant-numeric: tabular-nums; }
+  .stepper .chips { margin-left: auto; }
+  .swatches { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .sw { width: 36px; height: 36px; border-radius: 50%; outline: 2px solid transparent; outline-offset: 3px; }
+  .sw.sel { outline-color: var(--text); }
+  .custom { position: relative; width: 36px; height: 36px; border-radius: 50%; overflow: hidden;
+            background: conic-gradient(red, yellow, lime, cyan, blue, magenta, red); }
+  .custom.sel { outline: 2px solid var(--text); outline-offset: 3px; }
+  .custom input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+
+  /* sessão e console */
+  .log { list-style: none; margin: 0; padding: 0; }
+  .log li { display: flex; justify-content: space-between; gap: 10px; padding: 10px 0;
+            border-bottom: 1px solid var(--line); font-size: 14px; }
+  .log li:last-child { border-bottom: 0; }
+  .log .meta { color: var(--muted); }
+  .log .cut { color: var(--warn); }
+  .empty { color: var(--muted); font-size: 14px; }
+  details summary { cursor: pointer; color: var(--muted); font-size: 14px; padding: 6px 0; }
+  .console { font: 12.5px/1.5 ui-monospace, Menlo, monospace; background: #05080a; color: #b9c7cd;
+             border-radius: 10px; padding: 10px; height: 180px; overflow: auto; white-space: pre-wrap; margin: 8px 0; }
+  .console .tx { color: var(--accent); }
+  .console .er { color: var(--danger); }
+  .send { display: flex; gap: 8px; }
+  .send input { flex: 1; min-width: 0; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line);
+                background: var(--surface); color: var(--text); font: inherit; text-transform: uppercase; }
+  .send button, .link { padding: 10px 14px; border-radius: 10px; background: var(--surface-2); }
+  .row { display: flex; justify-content: space-between; align-items: center; }
+
+  .toast { position: fixed; left: 50%; bottom: 20px; transform: translate(-50%, 20px); opacity: 0;
+           background: var(--surface-2); color: var(--text); padding: 12px 16px; border-radius: 12px;
+           box-shadow: 0 6px 24px #0008; transition: .25s; pointer-events: none; max-width: calc(100% - 32px); }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+  .toast.err { color: var(--danger); }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>EMDR2</h1>
+    <span class="pill" id="pill">Desconectado</span>
+  </header>
+  <div class="conn" id="conn">
+    <button class="primary" id="btBt">Conectar Bluetooth</button>
+    <button id="btUsb">USB</button>
+    <button id="btSim">Simulador</button>
+  </div>
+  <p class="note" id="connNote">Pareie o HC-05 nas configurações do Android antes (senha 1234 ou 0000).</p>
+
+  <section class="panel" aria-live="polite">
+    <div class="strip" id="strip"></div>
+    <div class="readout">
+      <div class="count" id="count">0<small> / 24</small></div>
+      <div class="state"><b id="stateTxt">Parado</b><span id="modeTxt">SUAVE · 1,00 ciclo/s</span></div>
+    </div>
+    <div class="bar"><span id="bar"></span></div>
+    <div class="transport">
+      <button class="go" id="btGo">Iniciar</button>
+      <button id="btPause">Pausar</button>
+      <button class="stop" id="btStop">Parar</button>
+    </div>
+  </section>
+
+  <h2>Presets</h2>
+  <div class="presets" id="presets"></div>
+
+  <h2>Ajustes</h2>
+  <div class="field">
+    <div class="lbl">Padrão</div>
+    <div class="chips" id="modes"></div>
+  </div>
+  <div class="field">
+    <label for="vel">Velocidade <output id="velOut"></output></label>
+    <input type="range" id="vel" min="200" max="3000" step="50" value="500">
+  </div>
+  <div class="field">
+    <div class="lbl">Série <span class="val">ciclos de ida e volta</span></div>
+    <div class="stepper">
+      <button id="serMinus" aria-label="menos">−</button>
+      <span class="num" id="serNum">24</span>
+      <button id="serPlus" aria-label="mais">+</button>
+      <div class="chips" id="serChips"></div>
+    </div>
+  </div>
+  <div class="field">
+    <div class="lbl">Cor</div>
+    <div class="swatches" id="colors"></div>
+  </div>
+  <div class="field">
+    <label for="bri">Brilho <output id="briOut"></output></label>
+    <input type="range" id="bri" min="5" max="255" value="80">
+  </div>
+  <div class="field">
+    <label for="tam">Tamanho do ponto <output id="tamOut"></output></label>
+    <input type="range" id="tam" min="1" max="10" value="2">
+  </div>
+
+  <div class="row"><h2>Sessão</h2><button class="link" id="btClear">Limpar</button></div>
+  <ul class="log" id="session"></ul>
+
+  <h2>Avançado</h2>
+  <details>
+    <summary>Console serial</summary>
+    <div class="console" id="console"></div>
+    <form class="send" id="sendForm">
+      <input id="sendIn" placeholder="STATUS" autocomplete="off" autocapitalize="characters">
+      <button>Enviar</button>
+    </form>
+    <p class="note">Demonstração automática da fita: <button class="link" id="btDemo">Rodar demo</button></p>
+  </details>
+</main>
+<div class="toast" id="toast"></div>
+
+<script>
+// ---------- dados do firmware (espelham o EMDR2.ino) ----------
+const N_LEDS = 30;
+const MODOS = ["VARRER", "SUAVE", "COMETA", "SALTO", "ALTERNA", "RESPIRA", "FOCO"];
+const CORES = {
+  VERMELHO: [255, 0, 0], VERDE: [0, 255, 0], AZUL: [0, 0, 255], BRANCO: [255, 255, 255],
+  AMARELO: [255, 180, 0], CIANO: [0, 255, 255], MAGENTA: [255, 0, 255], LARANJA: [255, 80, 0],
+};
+const PRESETS = {
+  DESSENS: { desc: "Dessensibilização · 1 ciclo/s · 24", cfg: { modo: "SUAVE", vel: 500, serie: 24, tam: 2, cor: [0, 0, 255], brilho: 80 } },
+  RECURSO: { desc: "Recurso / lugar seguro · lento · 6", cfg: { modo: "SUAVE", vel: 1500, serie: 6, tam: 3, cor: [0, 255, 60], brilho: 50 } },
+  CALMA:   { desc: "Respiração guiada 4 s / 6 s", cfg: { modo: "RESPIRA", serie: 0, cor: [0, 120, 255], brilho: 60 } },
+  FOCO:    { desc: "Ponto fixo no centro", cfg: { modo: "FOCO", serie: 0, tam: 1, cor: [255, 255, 255], brilho: 40 } },
+};
+const RESPIRA_IN = 4000, RESPIRA_OUT = 6000;
+const SPP = "00001101-0000-1000-8000-00805f9b34fb";
+
+// ---------- estado ----------
+const cfg = { modo: "SUAVE", vel: 500, serie: 24, tam: 2, cor: [0, 0, 255], brilho: 80 };
+let estado = "parado";      // parado | rodando | pausado | demo
+let ciclo = 0, fase = 0, presetAtual = null;
+let link = null;            // { send(line), close() }
+let wakeLock = null;
+
+const $ = (id) => document.getElementById(id);
+const fmt = (n, d = 2) => n.toFixed(d).replace(".", ",");
+
+// ---------- conexão ----------
+async function conectarSerial(bluetooth) {
+  if (!("serial" in navigator)) {
+    nota("Este navegador não tem Web Serial. Use o Chrome no Android (versão 138 ou mais nova) ou no computador. O simulador funciona em qualquer um.", true);
+    return;
+  }
+  let port;
+  try {
+    port = await navigator.serial.requestPort(bluetooth
+      ? { filters: [{ bluetoothServiceClassId: SPP }], allowedBluetoothServiceClassIds: [SPP] }
+      : {});
+    await port.open({ baudRate: 9600 });
+  } catch (e) {
+    if (e.name !== "NotFoundError") nota("Não conectou: " + e.message, true);
+    return;
+  }
+  const encoder = new TextEncoderStream();
+  const writableClosed = encoder.readable.pipeTo(port.writable);
+  const writer = encoder.writable.getWriter();
+  const decoder = new TextDecoderStream();
+  const readableClosed = port.readable.pipeTo(decoder.writable).catch(() => {});
+  const reader = decoder.readable.getReader();
+  let fechado = false;
+
+  link = {
+    tipo: bluetooth ? "Bluetooth" : "USB",
+    send: (l) => writer.write(l + "\n"),
+    async close() {
+      if (fechado) return;
+      fechado = true;
+      try { await reader.cancel(); await readableClosed; } catch {}
+      try { await writer.close(); await writableClosed; } catch {}
+      try { await port.close(); } catch {}
+    },
+  };
+  conectado();
+  // USB reinicia o Arduino ao abrir a porta: espera o boot antes de pedir o STATUS
+  setTimeout(() => enviar("STATUS"), bluetooth ? 300 : 2500);
+
+  let buf = "";
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += value;
+      const linhas = buf.split(/\r?\n/);
+      buf = linhas.pop();
+      linhas.forEach((l) => l.trim() && receber(l.trim()));
+    }
+  } catch (e) {
+    if (!fechado) nota("Conexão perdida: " + e.message, true);
+  }
+  if (!fechado) { await link.close(); desconectado(); }
+}
+
+function conectarSimulador() {
+  const sim = new Simulador(receber);
+  link = { tipo: "Simulador", send: (l) => sim.recebe(l), close: () => sim.desliga() };
+  conectado();
+  enviar("STATUS");
+}
+
+async function desconectar() {
+  if (link) await link.close();
+  desconectado();
+}
+
+function conectado() {
+  $("pill").textContent = link.tipo;
+  $("pill").className = "pill " + (link.tipo === "Simulador" ? "sim" : "on");
+  $("conn").innerHTML = `<button id="btOff">Desconectar</button>`;
+  $("btOff").onclick = desconectar;
+  nota(link.tipo === "Simulador" ? "Simulador: a fita é desenhada só na tela." : "");
+  manterTelaLigada();
+}
+
+function desconectado() {
+  link = null;
+  $("pill").textContent = "Desconectado";
+  $("pill").className = "pill";
+  $("conn").innerHTML = `<button class="primary" id="btBt">Conectar Bluetooth</button>
+    <button id="btUsb">USB</button><button id="btSim">Simulador</button>`;
+  ligarBotoesConexao();
+  setEstado("parado");
+  if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; }
+}
+
+function ligarBotoesConexao() {
+  $("btBt").onclick = () => conectarSerial(true);
+  $("btUsb").onclick = () => conectarSerial(false);
+  $("btSim").onclick = conectarSimulador;
+}
+
+async function manterTelaLigada() {
+  try { wakeLock = await navigator.wakeLock?.request("screen"); } catch {}
+}
+document.addEventListener("visibilitychange", () => {
+  if (link && document.visibilityState === "visible") manterTelaLigada();
+});
+
+// ---------- protocolo ----------
+function enviar(cmd) {
+  logConsole(cmd, "tx");
+  if (!link) { toast("Conecte primeiro.", true); return; }
+  Promise.resolve(link.send(cmd)).catch((e) => toast("Falha ao enviar: " + e.message, true));
+}
+
+function receber(l) {
+  logConsole(l);
+  let m;
+  if ((m = l.match(/^CICLO (\d+)/))) {
+    ciclo = +m[1];
+    fase = ciclo;                       // ressincroniza a prévia com a fita
+    if (estado === "parado") setEstado("rodando");
+    desenharContagem();
+  } else if ((m = l.match(/^FIM (\d+)/))) {
+    ciclo = +m[1];
+    registrarSerie(ciclo, true);
+    setEstado("parado");
+    navigator.vibrate?.([120, 80, 120]);
+    toast(`Série concluída: ${ciclo} ciclos`);
+  } else if ((m = l.match(/^OK PARA (\d+)/))) {
+    if (estado === "rodando" || estado === "pausado") {
+      if (+m[1] > 0) registrarSerie(+m[1], false);
+    }
+    setEstado("parado");
+  } else if (l === "OK INICIA") {
+    ciclo = 0; fase = 0; setEstado("rodando");
+  } else if (l === "OK PAUSA") {
+    if (estado === "rodando") setEstado("pausado");
+  } else if (l === "OK SEGUE") {
+    if (estado === "pausado") setEstado("rodando");
+  } else if (l === "DEMO") {
+    setEstado("demo");
+  } else if (l === "DEMO PARADA") {
+    setEstado("parado");
+  } else if (l.startsWith("EMDR2 pronto")) {
+    setEstado("parado");
+    if (link && link.tipo !== "Simulador") setTimeout(() => enviar("STATUS"), 200);
+  } else if (l.startsWith("STATUS ")) {
+    lerStatus(l);
+  } else if (l.startsWith("ERRO")) {
+    toast(l.replace(/^ERRO\s*/, "Erro: "), true);
+  }
+}
+
+function lerStatus(l) {
+  const kv = Object.fromEntries(l.slice(7).split(" ").map((p) => p.split("=")));
+  if (MODOS.includes(kv.modo)) cfg.modo = kv.modo;
+  if (kv.vel) cfg.vel = +kv.vel;
+  if (kv.serie) cfg.serie = +kv.serie;
+  if (kv.cor) cfg.cor = kv.cor.split(",").map(Number);
+  if (kv.brilho) cfg.brilho = +kv.brilho;
+  if (kv.tam) cfg.tam = +kv.tam;
+  if (kv.ciclo) ciclo = +kv.ciclo;
+  const e = { parado: "parado", rodando: "rodando", pausado: "pausado" }[kv.estado];
+  if (e) { if (e !== "parado") fase = Math.max(fase, ciclo); setEstado(e); }
+  desenharAjustes();
+}
+
+// ---------- ações ----------
+function aplicarPreset(nome) {
+  Object.assign(cfg, PRESETS[nome].cfg);
+  presetAtual = nome;
+  enviar("PRESET " + nome);
+  desenharAjustes();
+}
+
+function mudar(chave, valor, cmd) {
+  cfg[chave] = valor;
+  presetAtual = null;
+  enviar(cmd);
+  desenharAjustes();
+}
+
+function setEstado(e) {
+  estado = e;
+  const txt = { parado: "Parado", rodando: "Em série", pausado: "Pausado", demo: "Demonstração" }[e];
+  $("stateTxt").textContent = txt;
+  $("btGo").textContent = e === "rodando" || e === "pausado" ? "Reiniciar" : "Iniciar";
+  $("btPause").textContent = e === "pausado" ? "Seguir" : "Pausar";
+  $("btPause").disabled = !(e === "rodando" || e === "pausado");
+  desenharContagem();
+}
+
+// ---------- sessão ----------
+let sessao = [];
+try { sessao = JSON.parse(localStorage.getItem("emdr2-sessao") || "[]"); } catch {}
+
+function registrarSerie(n, completa) {
+  sessao.unshift({
+    hora: new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+    nome: presetAtual || cfg.modo,
+    ritmo: cfg.modo === "RESPIRA" ? "respiração" : fmt(1000 / (2 * cfg.vel)) + " ciclo/s",
+    n, completa,
+  });
+  try { localStorage.setItem("emdr2-sessao", JSON.stringify(sessao)); } catch {}
+  desenharSessao();
+}
+
+function desenharSessao() {
+  const ul = $("session");
+  if (!sessao.length) { ul.innerHTML = `<li class="empty">Nenhuma série registrada.</li>`; return; }
+  const total = sessao.length;
+  ul.innerHTML = sessao.map((s, i) => `<li>
+      <span><b>Série ${total - i}</b> · ${s.nome}<br><span class="meta">${s.hora} · ${s.ritmo}</span></span>
+      <span class="${s.completa ? "" : "cut"}">${s.n} ciclos${s.completa ? "" : "<br>interrompida"}</span>
+    </li>`).join("");
+}
+
+// ---------- interface ----------
+function montar() {
+  const strip = $("strip");
+  for (let i = 0; i < N_LEDS; i++) strip.appendChild(document.createElement("i"));
+
+  $("presets").innerHTML = Object.entries(PRESETS).map(([k, p]) =>
+    `<button class="preset" data-p="${k}"><b>${k[0] + k.slice(1).toLowerCase()}</b><span>${p.desc}</span></button>`).join("");
+  $("presets").onclick = (e) => { const b = e.target.closest(".preset"); if (b) aplicarPreset(b.dataset.p); };
+
+  $("modes").innerHTML = MODOS.map((m) => `<button class="chip" data-m="${m}">${m[0] + m.slice(1).toLowerCase()}</button>`).join("");
+  $("modes").onclick = (e) => { const b = e.target.closest(".chip"); if (b) mudar("modo", b.dataset.m, "MODO " + b.dataset.m); };
+
+  $("vel").oninput = () => { cfg.vel = +$("vel").value; desenharAjustes(); };
+  $("vel").onchange = () => mudar("vel", +$("vel").value, "VEL " + $("vel").value);
+  $("bri").oninput = () => { cfg.brilho = +$("bri").value; desenharAjustes(); };
+  $("bri").onchange = () => mudar("brilho", +$("bri").value, "BRILHO " + $("bri").value);
+  $("tam").oninput = () => { cfg.tam = +$("tam").value; desenharAjustes(); };
+  $("tam").onchange = () => mudar("tam", +$("tam").value, "TAM " + $("tam").value);
+
+  const serie = (n) => mudar("serie", Math.max(0, Math.min(999, n)), "SERIE " + Math.max(0, Math.min(999, n)));
+  $("serMinus").onclick = () => serie(cfg.serie - 1);
+  $("serPlus").onclick = () => serie(cfg.serie + 1);
+  $("serChips").innerHTML = [6, 12, 24, 0].map((n) => `<button class="chip" data-n="${n}">${n || "∞"}</button>`).join("");
+  $("serChips").onclick = (e) => { const b = e.target.closest(".chip"); if (b) serie(+b.dataset.n); };
+
+  $("colors").innerHTML = Object.entries(CORES).map(([k, c]) =>
+    `<button class="sw" data-c="${k}" title="${k}" aria-label="${k}" style="background:rgb(${c})"></button>`).join("") +
+    `<label class="custom" id="customWrap" title="Outra cor"><input type="color" id="custom" aria-label="Outra cor"></label>`;
+  $("colors").onclick = (e) => { const b = e.target.closest(".sw"); if (b) mudar("cor", CORES[b.dataset.c], "COR " + b.dataset.c); };
+  $("custom").onchange = (e) => {
+    const h = e.target.value, rgb = [1, 3, 5].map((i) => parseInt(h.substr(i, 2), 16));
+    mudar("cor", rgb, "COR " + rgb.join(" "));
+  };
+
+  $("btGo").onclick = () => enviar("INICIA");
+  $("btPause").onclick = () => enviar(estado === "pausado" ? "SEGUE" : "PAUSA");
+  $("btStop").onclick = () => enviar("PARA");
+  $("btDemo").onclick = () => enviar("DEMO");
+  $("btClear").onclick = () => {
+    sessao = [];
+    try { localStorage.removeItem("emdr2-sessao"); } catch {}
+    desenharSessao();
+  };
+  $("sendForm").onsubmit = (e) => {
+    e.preventDefault();
+    const v = $("sendIn").value.trim().toUpperCase();
+    if (v) { enviar(v); $("sendIn").value = ""; }
+  };
+
+  ligarBotoesConexao();
+  desenharAjustes();
+  desenharSessao();
+  setEstado("parado");
+  requestAnimationFrame(quadro);
+}
+
+function desenharAjustes() {
+  document.querySelectorAll(".preset").forEach((b) => b.classList.toggle("sel", b.dataset.p === presetAtual));
+  document.querySelectorAll("#modes .chip").forEach((b) => b.classList.toggle("sel", b.dataset.m === cfg.modo));
+  $("vel").value = cfg.vel;
+  $("velOut").textContent = `${fmt(cfg.vel / 1000)} s por passagem · ${fmt(1000 / (2 * cfg.vel))} ciclo/s`;
+  $("bri").value = cfg.brilho;
+  $("briOut").textContent = Math.round(cfg.brilho / 2.55) + "%";
+  $("tam").value = cfg.tam;
+  $("tamOut").textContent = cfg.tam + (cfg.tam > 1 ? " LEDs" : " LED");
+  $("serNum").textContent = cfg.serie || "∞";
+  document.querySelectorAll("#serChips .chip").forEach((b) => b.classList.toggle("sel", +b.dataset.n === cfg.serie));
+  const nomeCor = Object.keys(CORES).find((k) => CORES[k].join() === cfg.cor.join());
+  document.querySelectorAll(".sw").forEach((b) => b.classList.toggle("sel", b.dataset.c === nomeCor));
+  $("customWrap").classList.toggle("sel", !nomeCor);
+  desenharContagem();
+}
+
+function desenharContagem() {
+  const total = cfg.serie;
+  const contavel = cfg.modo !== "FOCO";
+  $("count").innerHTML = estado === "demo" ? "—"
+    : `${contavel ? ciclo : "·"}<small> / ${total || "∞"}</small>`;
+  const ritmo = cfg.modo === "RESPIRA" ? "4 s inspira · 6 s expira"
+    : cfg.modo === "FOCO" ? "ponto fixo" : fmt(1000 / (2 * cfg.vel)) + " ciclo/s";
+  $("modeTxt").textContent = estado === "demo" ? "a fita mostra todos os padrões"
+    : `${cfg.modo[0] + cfg.modo.slice(1).toLowerCase()} · ${ritmo}`;
+  $("bar").style.width = total && estado !== "demo" ? Math.min(100, (ciclo / total) * 100) + "%" : "0";
+}
+
+// ---------- prévia da fita (mesma matemática do desenhar() do firmware) ----------
+let ultimo = performance.now();
+function quadro(agora) {
+  const dt = agora - ultimo;
+  ultimo = agora;
+  const periodo = cfg.modo === "RESPIRA" ? RESPIRA_IN + RESPIRA_OUT : 2 * cfg.vel;
+  // não deixa a prévia passar do próximo CICLO que a fita ainda vai mandar
+  if (estado === "rodando" && cfg.modo !== "FOCO") fase = Math.min(fase + dt / periodo, ciclo + 0.999);
+  const leds = estado === "rodando" || estado === "pausado" ? niveis(fase) : new Array(N_LEDS).fill(0);
+  const ganho = 0.35 + 0.65 * (cfg.brilho / 255);
+  const els = $("strip").children;
+  for (let i = 0; i < N_LEDS; i++) {
+    const v = leds[i] * ganho;
+    const [r, g, b] = cfg.cor.map((c) => Math.round(c * v));
+    els[i].style.background = v > 0.01 ? `rgb(${r},${g},${b})` : "";
+    els[i].style.boxShadow = v > 0.2 ? `0 0 ${6 * v}px rgb(${r},${g},${b})` : "";
+  }
+  requestAnimationFrame(quadro);
+}
+
+function niveis(fase) {
+  const out = new Array(N_LEDS).fill(0);
+  const f = fase - Math.floor(fase);
+  const tri = f < 0.5 ? 2 * f : 2 - 2 * f;
+  const raio = (cfg.tam - 1) / 2, extremo = N_LEDS - 1 - raio;
+  const ponto = (c) => {
+    for (let i = 0; i < N_LEDS; i++) {
+      const d = Math.abs(i - c);
+      out[i] = Math.max(out[i], d <= raio ? 1 : d < raio + 1 ? raio + 1 - d : 0);
+    }
+  };
+  switch (cfg.modo) {
+    case "VARRER": ponto(raio + tri * (extremo - raio)); break;
+    case "SUAVE": ponto(raio + (1 - Math.cos(2 * Math.PI * f)) / 2 * (extremo - raio)); break;
+    case "COMETA": {
+      const c = raio + tri * (extremo - raio), atras = f < 0.5 ? -1 : 1;
+      ponto(c);
+      for (let j = 1; j <= 6; j++) {
+        const i = Math.floor(c + atras * (raio + j) + 0.5);
+        if (i >= 0 && i < N_LEDS) out[i] = Math.max(out[i], 1 / 2 ** j);
+      }
+      break;
+    }
+    case "SALTO": ponto(f < 0.5 ? raio : extremo); break;
+    case "ALTERNA": {
+      const onda = (1 - Math.cos(2 * Math.PI * f)) / 2;
+      for (let i = 0; i < N_LEDS; i++) out[i] = i < N_LEDS / 2 ? 1 - onda : onda;
+      break;
+    }
+    case "RESPIRA": {
+      const t = f * (RESPIRA_IN + RESPIRA_OUT);
+      const v = t < RESPIRA_IN ? (1 - Math.cos(Math.PI * t / RESPIRA_IN)) / 2
+                               : (1 + Math.cos(Math.PI * (t - RESPIRA_IN) / RESPIRA_OUT)) / 2;
+      out.fill(0.03 + v * 0.97);
+      break;
+    }
+    case "FOCO": ponto((N_LEDS - 1) / 2); break;
+  }
+  return out;
+}
+
+// ---------- simulador (responde como o firmware, sem fita) ----------
+class Simulador {
+  constructor(responde) {
+    this.r = (l) => setTimeout(() => responde(l), 30);
+    this.c = { modo: "SUAVE", vel: 500, serie: 24, cor: [0, 0, 255], brilho: 80, tam: 2 };
+    this.rodando = false; this.pausado = false; this.ciclo = 0; this.acum = 0;
+    this.t = setInterval(() => this.passo(50), 50);
+  }
+  passo(dt) {
+    if (!this.rodando || this.pausado || this.c.modo === "FOCO") return;
+    this.acum += dt / (this.c.modo === "RESPIRA" ? RESPIRA_IN + RESPIRA_OUT : 2 * this.c.vel);
+    while (Math.floor(this.acum) > this.ciclo) {
+      this.ciclo++;
+      this.r(`CICLO ${this.ciclo}` + (this.c.serie ? `/${this.c.serie}` : ""));
+      if (this.c.serie && this.ciclo >= this.c.serie) { this.rodando = false; this.r(`FIM ${this.ciclo}`); return; }
+    }
+  }
+  status() {
+    const c = this.c, e = !this.rodando ? "parado" : this.pausado ? "pausado" : "rodando";
+    this.r(`STATUS modo=${c.modo} vel=${c.vel} serie=${c.serie} cor=${c.cor.join(",")} brilho=${c.brilho} tam=${c.tam} estado=${e} ciclo=${this.ciclo} demo=300`);
+  }
+  recebe(linha) {
+    const [cmd, a1, a2, a3] = linha.trim().toUpperCase().split(/\s+/);
+    const num = (s, lo, hi) => (/^\d+$/.test(s ?? "") && +s >= lo && +s <= hi ? +s : null);
+    const c = this.c;
+    switch (cmd) {
+      case "INICIA": this.rodando = true; this.pausado = false; this.ciclo = 0; this.acum = 0; return this.r("OK INICIA");
+      case "PARA": this.rodando = false; return this.r(`OK PARA ${this.ciclo}`);
+      case "PAUSA": this.pausado = true; return this.r("OK PAUSA");
+      case "SEGUE": this.pausado = false; return this.r("OK SEGUE");
+      case "STATUS": return this.status();
+      case "DEMO": return this.r(a1 ? `OK DEMO ${a1}` : "DEMO");
+      case "MODO": if (MODOS.includes(a1)) { c.modo = a1; return this.r("OK MODO " + a1); } return this.r("ERRO modo");
+      case "PRESET":
+        if (!PRESETS[a1]) return this.r("ERRO preset");
+        Object.assign(c, PRESETS[a1].cfg); this.r("OK PRESET " + a1); return this.status();
+      case "VEL": { const v = num(a1, 200, 5000); if (v == null) return this.r("ERRO VEL 200..5000"); c.vel = v; return this.r("OK VEL " + v); }
+      case "SERIE": { const v = num(a1, 0, 999); if (v == null) return this.r("ERRO SERIE"); c.serie = v; return this.r("OK SERIE " + v); }
+      case "BRILHO": { const v = num(a1, 0, 255); if (v == null) return this.r("ERRO BRILHO"); c.brilho = v; return this.r("OK BRILHO " + v); }
+      case "TAM": { const v = num(a1, 1, 10); if (v == null) return this.r("ERRO TAM"); c.tam = v; return this.r("OK TAM " + v); }
+      case "COR": {
+        const rgb = [a1, a2, a3].map((s) => num(s, 0, 255));
+        if (!rgb.includes(null)) { c.cor = rgb; return this.r("OK COR"); }
+        if (CORES[a1]) { c.cor = CORES[a1]; return this.r("OK COR " + a1); }
+        return this.r("ERRO COR");
+      }
+      default: return this.r("ERRO comando desconhecido: " + cmd);
+    }
+  }
+  desliga() { clearInterval(this.t); }
+}
+
+// ---------- utilidades ----------
+function logConsole(l, cls = "") {
+  const el = $("console");
+  const d = document.createElement("div");
+  if (cls) d.className = cls;
+  else if (l.startsWith("ERRO")) d.className = "er";
+  d.textContent = (cls === "tx" ? "> " : "") + l;
+  el.appendChild(d);
+  while (el.childElementCount > 300) el.firstChild.remove();
+  el.scrollTop = el.scrollHeight;
+}
+
+let toastT;
+function toast(msg, erro) {
+  const t = $("toast");
+  t.textContent = msg;
+  t.className = "toast show" + (erro ? " err" : "");
+  clearTimeout(toastT);
+  toastT = setTimeout(() => (t.className = "toast"), 3000);
+}
+
+function nota(msg, erro) {
+  $("connNote").textContent = msg;
+  $("connNote").className = "note" + (erro ? " err" : "");
+  $("connNote").hidden = !msg;
+}
+
+montar();
+</script>
+</body>
+</html>
